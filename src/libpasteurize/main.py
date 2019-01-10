@@ -63,6 +63,8 @@ def main(args=None):
                       help="Each FIX specifies a transformation; default: all")
     parser.add_option("-j", "--processes", action="store", default=1,
                       type="int", help="Run 2to3 concurrently")
+    parser.add_option("-c", "--comment-annotations", action="store_true",
+                      help="Add comment-style typing annotations to functions")
     parser.add_option("-x", "--nofix", action="append", default=[],
                       help="Prevent a fixer from being run.")
     parser.add_option("-l", "--list-fixes", action="store_true",
@@ -143,6 +145,11 @@ def main(args=None):
         extra_fixes.add(prefix + 'fix_add_future_standard_library_import')
         extra_fixes.add(prefix + 'fix_add_all_future_builtins')
 
+    if options.comment_annotations:
+        prefix = 'libpasteurize.fixes.'
+        extra_fixes.add(prefix + 'fix_add_comment_annotations')
+        unwanted_fixes.add(prefix + 'fix_annotations')
+
     explicit = set()
     if options.fix:
         all_present = False
@@ -179,7 +186,7 @@ def main(args=None):
     else:
         requested = avail_fixes.union(explicit)
 
-    fixer_names = requested | extra_fixes - unwanted_fixes
+    fixer_names = (requested | extra_fixes) - unwanted_fixes
 
     # Initialize the refactoring tool
     rt = StdoutRefactoringTool(sorted(fixer_names), flags, set(),
