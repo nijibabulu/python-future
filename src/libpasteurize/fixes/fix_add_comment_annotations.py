@@ -72,7 +72,7 @@ class FixAddCommentAnnotations(fixer_base.BaseFix):
         body = results.get(u"body")
         ret = results.get(u"ret")
         if params is not None and body is not None:
-            ret_type = u"Any"
+            ret_type = u"None"
             types = []
             for child in params.children:
                 if child.type == syms.typedargslist:
