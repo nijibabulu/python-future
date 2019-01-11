@@ -62,15 +62,25 @@ class FixAddCommentAnnotations(fixer_base.BaseFix):
 
     PATTERN = u"""
               funcdef< 'def' any params=parameters< '(' [any] ')' > ['->' ret=any] ':' body=any >
+              |
+              expr_stmt< lhs=any annnode=annassign< ':' ann=any '=' rhs=any > >
+              |
+              expr_stmt< lhs=any annnode=annassign< ':' ann=any > >
               """
 
     def transform(self, node, results):
         u"""
         This replaces function type annotations with a commented version.
         """
+
         params = results.get(u"params")
         body = results.get(u"body")
         ret = results.get(u"ret")
+        lhs = results.get(u"lhs")
+        ann = results.get(u"ann")
+        rhs = results.get(u"rhs")
+        annnode = results.get(u"annnode")
+        
         if params is not None and body is not None:
             ret_type = u"None"
             types = []
@@ -88,7 +98,6 @@ class FixAddCommentAnnotations(fixer_base.BaseFix):
             type_sig = "# type: ({}) -> {}".format(", ".join(types), ret_type)
             type_sig_comment = Leaf(token.COMMENT, type_sig)
 
-            # print(len(body))
             indents = [l for l in body.leaves() if l.type == token.INDENT]
             if not len(indents):
                 indent_node = Leaf(token.INDENT, "    ")
@@ -99,3 +108,14 @@ class FixAddCommentAnnotations(fixer_base.BaseFix):
             body.insert_child(0, type_sig_comment)
             body.insert_child(0, indent_node)
             body.insert_child(0, Leaf(token.NEWLINE, "\n"))
+        elif ann is not None:
+            type_ann_comment = Leaf(token.COMMENT, "  # type: {}".format(
+                ''.join(x.value for x in ann.leaves())
+            ))
+            lhs.parent.append_child(Leaf(token.EQUAL, " ="))
+            if rhs is None:
+                lhs.parent.append_child(Leaf(token.NAME, " None"))
+            else:
+                lhs.parent.append_child(rhs)
+            annnode.remove()
+            lhs.parent.append_child(type_ann_comment)
